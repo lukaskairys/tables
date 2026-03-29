@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth.js Models ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  createdParties Party[]       @relation("PartyCreator")
+  memberships    PartyMember[]
+  createdEvents  Event[]       @relation("EventCreator")
+  createdTables  GameTable[]   @relation("TableCreator")
+  seats          TableSeat[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Application Models ─────────────────────────────────────────
+
+enum PartyRole {
+  ADMIN
+  MEMBER
+}
+
+model Party {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  inviteCode  String   @unique
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User          @relation("PartyCreator", fields: [createdById], references: [id])
+  members   PartyMember[]
+  events    Event[]
+}
+
+model PartyMember {
+  id       String    @id @default(cuid())
+  userId   String
+  partyId  String
+  role     PartyRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, partyId])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  partyId     String
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  party     Party       @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  createdBy User        @relation("EventCreator", fields: [createdById], references: [id])
+  tables    GameTable[]
+}
+
+model GameTable {
+  id             String   @id @default(cuid())
+  eventId        String
+  boardGameBggId Int
+  boardGameName  String
+  boardGameImage String?
+  maxPlayers     Int
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  event     Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdBy User        @relation("TableCreator", fields: [createdById], references: [id])
+  seats     TableSeat[]
+}
+
+model TableSeat {
+  id         String  @id @default(cuid())
+  tableId    String
+  seatNumber Int
+  userId     String?
+
+  table GameTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user  User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([tableId, seatNumber])
+  @@unique([tableId, userId])
+}
