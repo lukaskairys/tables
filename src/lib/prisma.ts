@@ -1,10 +1,12 @@
+import { neon } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../../generated/prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
 function createPrismaClient() {
-  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
+  const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+  const adapter = new PrismaNeon(sql as never);
   return new PrismaClient({ adapter });
 }
 
