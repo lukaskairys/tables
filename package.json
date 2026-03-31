@@ -27,7 +27,7 @@
     "zod": "^4.3.6"
   },
   "engines": {
-    "node": "22.x",
+    "node": "24.x",
     "npm": "10.x"
   },
   "devDependencies": {
