@@ -32,11 +32,11 @@ export default async function PartyPage({
 
   if (!party) notFound();
 
-  const membership = party.members.find((m) => m.user.id === session.user.id);
+  const membership = party.members.find((m) => m.user.id === session.user!.id);
   if (!membership) notFound();
 
   const isAdmin = membership.role === "ADMIN";
-  const isCreator = party.createdById === session.user.id;
+  const isCreator = party.createdById === session.user!.id;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -100,7 +100,7 @@ export default async function PartyPage({
           <MemberList
             partyId={partyId}
             members={party.members}
-            currentUserId={session.user.id}
+            currentUserId={session.user!.id}
             isCreator={isCreator}
             isAdmin={isAdmin}
           />

@@ -17,6 +17,16 @@ export const createTableSchema = z.object({
   boardGameName: z.string().min(1),
   boardGameImage: z.string().url().optional().nullable(),
   maxPlayers: z.number().int().min(1).max(20),
+  comment: z.string().max(1000).optional().nullable(),
+});
+
+export const updateTableSchema = z.object({
+  tableId: z.string().cuid(),
+  boardGameBggId: z.number().int().positive(),
+  boardGameName: z.string().min(1),
+  boardGameImage: z.string().url().optional().nullable(),
+  maxPlayers: z.number().int().min(1).max(20),
+  comment: z.string().max(1000).optional().nullable(),
 });
 
 export const joinPartySchema = z.object({

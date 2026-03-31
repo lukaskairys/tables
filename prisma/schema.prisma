@@ -115,6 +115,7 @@ model GameTable {
   boardGameName  String
   boardGameImage String?
   maxPlayers     Int
+  comment        String?  @db.Text
   createdById    String
   createdAt      DateTime @default(now())
 

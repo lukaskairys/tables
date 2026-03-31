@@ -10,9 +10,9 @@ interface TableSeatProps {
   };
   isCurrentUser: boolean;
   style: React.CSSProperties;
-  onJoin: () => void;
+  onJoin: (seatId: string) => void;
   onLeave: () => void;
-  onInvite?: () => void;
+  onInvite?: (seatId: string) => void;
   onRemove?: () => void;
 }
 
@@ -76,7 +76,7 @@ export function TableSeat({ seat, isCurrentUser, style, onJoin, onLeave, onInvit
       style={style}
     >
       <button
-        onClick={onInvite || onJoin}
+        onClick={() => onInvite ? onInvite(seat.id) : onJoin(seat.id)}
         className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 transition hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50"
         title={onInvite ? "Add a member" : "Join this seat"}
       >

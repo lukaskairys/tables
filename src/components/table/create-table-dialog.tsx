@@ -13,6 +13,7 @@ interface CreateTableDialogProps {
 
 export function CreateTableDialog({ eventId, onClose }: CreateTableDialogProps) {
   const [selectedGame, setSelectedGame] = useState<BggGameDetails | null>(null);
+  const [comment, setComment] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export function CreateTableDialog({ eventId, onClose }: CreateTableDialogProps) 
       boardGameName: selectedGame.name,
       boardGameImage: selectedGame.image || selectedGame.thumbnail,
       maxPlayers: selectedGame.maxPlayers,
+      comment: comment.trim() || null,
     });
 
     if (!result.success) {
@@ -72,6 +74,23 @@ export function CreateTableDialog({ eventId, onClose }: CreateTableDialogProps) 
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {selectedGame && (
+          <div className="mt-4">
+            <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
+              Comment <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              id="comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="e.g., Beginners welcome, teaching game..."
+              maxLength={1000}
+              rows={2}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+            />
           </div>
         )}
 

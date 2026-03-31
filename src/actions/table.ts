@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requirePartyMembership, requirePartyAdmin } from "@/lib/auth";
-import { createTableSchema } from "@/lib/validators";
+import { createTableSchema, updateTableSchema } from "@/lib/validators";
 
 export async function createTable(data: {
   eventId: string;
@@ -11,12 +11,13 @@ export async function createTable(data: {
   boardGameName: string;
   boardGameImage: string | null;
   maxPlayers: number;
+  comment?: string | null;
 }) {
   const session = await requireAuth();
 
   const parsed = createTableSchema.safeParse(data);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message };
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
   const event = await prisma.event.findUnique({
@@ -34,6 +35,7 @@ export async function createTable(data: {
         boardGameName: parsed.data.boardGameName,
         boardGameImage: parsed.data.boardGameImage,
         maxPlayers: parsed.data.maxPlayers,
+        comment: parsed.data.comment,
         createdById: session.user.id,
       },
     });
@@ -54,7 +56,73 @@ export async function createTable(data: {
   return { success: true, tableId: table.id };
 }
 
-export async function joinTable(tableId: string) {
+export async function updateTable(data: {
+  tableId: string;
+  boardGameBggId: number;
+  boardGameName: string;
+  boardGameImage: string | null;
+  maxPlayers: number;
+  comment?: string | null;
+}) {
+  const session = await requireAuth();
+
+  const parsed = updateTableSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+
+  const table = await prisma.gameTable.findUnique({
+    where: { id: parsed.data.tableId },
+    include: { event: true, seats: { orderBy: { seatNumber: "asc" } } },
+  });
+  if (!table) return { success: false, error: "Table not found" };
+
+  // Allow table creator or party admin
+  if (table.createdById !== session.user.id) {
+    await requirePartyAdmin(table.event.partyId);
+  }
+
+  const oldMax = table.maxPlayers;
+  const newMax = parsed.data.maxPlayers;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.gameTable.update({
+      where: { id: parsed.data.tableId },
+      data: {
+        boardGameBggId: parsed.data.boardGameBggId,
+        boardGameName: parsed.data.boardGameName,
+        boardGameImage: parsed.data.boardGameImage,
+        maxPlayers: parsed.data.maxPlayers,
+        comment: parsed.data.comment,
+      },
+    });
+
+    if (newMax > oldMax) {
+      // Add new seats
+      const newSeats = Array.from({ length: newMax - oldMax }, (_, i) => ({
+        tableId: parsed.data.tableId,
+        seatNumber: oldMax + i + 1,
+        userId: null as string | null,
+      }));
+      await tx.tableSeat.createMany({ data: newSeats });
+    } else if (newMax < oldMax) {
+      // Remove highest-numbered empty seats first, then occupied if needed
+      const seatsToRemove = table.seats
+        .slice(newMax)
+        .map((s) => s.id);
+      if (seatsToRemove.length > 0) {
+        await tx.tableSeat.deleteMany({
+          where: { id: { in: seatsToRemove } },
+        });
+      }
+    }
+  });
+
+  revalidatePath(`/party/${table.event.partyId}/event/${table.eventId}`);
+  return { success: true };
+}
+
+export async function joinTable(tableId: string, seatId: string) {
   const session = await requireAuth();
 
   const table = await prisma.gameTable.findUnique({
@@ -73,21 +141,14 @@ export async function joinTable(tableId: string) {
     return { success: false, error: "Already seated at this table" };
   }
 
-  // Find lowest empty seat
-  const emptySeat = await prisma.tableSeat.findFirst({
-    where: { tableId, userId: null },
-    orderBy: { seatNumber: "asc" },
-  });
-
-  if (!emptySeat) {
-    return { success: false, error: "No empty seats available" };
-  }
-
   try {
-    await prisma.tableSeat.update({
-      where: { id: emptySeat.id },
+    const updated = await prisma.tableSeat.updateMany({
+      where: { id: seatId, tableId, userId: null },
       data: { userId: session.user.id },
     });
+    if (updated.count === 0) {
+      return { success: false, error: "Seat is already taken, try another" };
+    }
   } catch {
     return { success: false, error: "Seat was just taken, try again" };
   }
@@ -149,7 +210,7 @@ export async function removeMemberFromTable(tableId: string, userId: string) {
   return { success: true };
 }
 
-export async function addMemberToTable(tableId: string, userId: string) {
+export async function addMemberToTable(tableId: string, userId: string, seatId?: string) {
   await requireAuth();
 
   const table = await prisma.gameTable.findUnique({
@@ -176,19 +237,26 @@ export async function addMemberToTable(tableId: string, userId: string) {
     return { success: false, error: "User is already seated at this table" };
   }
 
-  const emptySeat = await prisma.tableSeat.findFirst({
-    where: { tableId, userId: null },
-    orderBy: { seatNumber: "asc" },
-  });
-  if (!emptySeat) {
-    return { success: false, error: "No empty seats available" };
+  let targetSeatId = seatId;
+  if (!targetSeatId) {
+    const emptySeat = await prisma.tableSeat.findFirst({
+      where: { tableId, userId: null },
+      orderBy: { seatNumber: "asc" },
+    });
+    if (!emptySeat) {
+      return { success: false, error: "No empty seats available" };
+    }
+    targetSeatId = emptySeat.id;
   }
 
   try {
-    await prisma.tableSeat.update({
-      where: { id: emptySeat.id },
+    const updated = await prisma.tableSeat.updateMany({
+      where: { id: targetSeatId, tableId, userId: null },
       data: { userId },
     });
+    if (updated.count === 0) {
+      return { success: false, error: "Seat is already taken, try another" };
+    }
   } catch {
     return { success: false, error: "Seat was just taken, try again" };
   }

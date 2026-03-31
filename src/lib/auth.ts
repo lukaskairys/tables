@@ -11,18 +11,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     session({ session, user }) {
-      session.user.id = user.id;
+      if (session.user) session.user.id = user.id;
       return session;
     },
   },
 });
+
+type AuthenticatedSession = Awaited<ReturnType<typeof auth>> & {
+  user: { id: string; name?: string | null; email?: string | null; image?: string | null };
+};
 
 export async function requireAuth() {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
-  return session;
+  return session as unknown as AuthenticatedSession;
 }
 
 export async function requirePartyMembership(partyId: string) {

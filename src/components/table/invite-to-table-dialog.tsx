@@ -12,12 +12,14 @@ interface PartyMember {
 
 interface InviteToTableDialogProps {
   tableId: string;
+  seatId?: string;
   availableMembers: PartyMember[];
   onClose: () => void;
 }
 
 export function InviteToTableDialog({
   tableId,
+  seatId,
   availableMembers,
   onClose,
 }: InviteToTableDialogProps) {
@@ -30,7 +32,7 @@ export function InviteToTableDialog({
     setIsPending(true);
     setError(null);
 
-    const result = await addMemberToTable(tableId, selectedUserId);
+    const result = await addMemberToTable(tableId, selectedUserId, seatId);
 
     if (result.success) {
       onClose();
@@ -44,7 +46,7 @@ export function InviteToTableDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl mx-4">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Add a Member to Table
+          Add a Player to Table
         </h2>
 
         {availableMembers.length === 0 ? (

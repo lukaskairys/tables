@@ -15,7 +15,7 @@ export async function createParty(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message };
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
   const party = await prisma.$transaction(async (tx) => {
@@ -113,7 +113,7 @@ export async function updateParty(partyId: string, formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message };
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
   await prisma.party.update({

@@ -19,7 +19,7 @@ export async function createEvent(formData: FormData) {
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message };
+    return { success: false, error: parsed.error.issues[0].message };
   }
 
   const event = await prisma.event.create({

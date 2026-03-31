@@ -29,7 +29,7 @@ export default async function EventPage({
       include: { user: { select: { id: true, name: true, image: true } } },
     })
   );
-  const membership = members.find((m) => m.user.id === session.user.id);
+  const membership = members.find((m) => m.user.id === session.user!.id);
   const isAdmin = membership?.role === "ADMIN";
   const partyMembers = members.map((m) => m.user);
 
@@ -79,9 +79,9 @@ export default async function EventPage({
               key={table.id}
               table={table}
               currentUser={{
-                id: session.user.id,
-                name: session.user.name || null,
-                image: session.user.image || null,
+                id: session.user!.id!,
+                name: session.user!.name || null,
+                image: session.user!.image || null,
               }}
               isAdmin={isAdmin}
               partyMembers={partyMembers}
