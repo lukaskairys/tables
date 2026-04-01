@@ -27,30 +27,26 @@ export async function createTable(data: {
 
   await requirePartyMembership(event.partyId);
 
-  const table = await prisma.$transaction(async (tx) => {
-    const table = await tx.gameTable.create({
-      data: {
-        eventId: parsed.data.eventId,
-        boardGameBggId: parsed.data.boardGameBggId,
-        boardGameName: parsed.data.boardGameName,
-        boardGameImage: parsed.data.boardGameImage,
-        maxPlayers: parsed.data.maxPlayers,
-        comment: parsed.data.comment,
-        createdById: session.user.id,
-      },
-    });
-
-    // Create all seats
-    const seatData = Array.from({ length: parsed.data.maxPlayers }, (_, i) => ({
-      tableId: table.id,
-      seatNumber: i + 1,
-      userId: i === 0 ? session.user.id : null, // Creator sits at seat 1
-    }));
-
-    await tx.tableSeat.createMany({ data: seatData });
-
-    return table;
+  const table = await prisma.gameTable.create({
+    data: {
+      eventId: parsed.data.eventId,
+      boardGameBggId: parsed.data.boardGameBggId,
+      boardGameName: parsed.data.boardGameName,
+      boardGameImage: parsed.data.boardGameImage,
+      maxPlayers: parsed.data.maxPlayers,
+      comment: parsed.data.comment,
+      createdById: session.user.id,
+    },
   });
+
+  // Create all seats
+  const seatData = Array.from({ length: parsed.data.maxPlayers }, (_, i) => ({
+    tableId: table.id,
+    seatNumber: i + 1,
+    userId: i === 0 ? session.user.id : null, // Creator sits at seat 1
+  }));
+
+  await prisma.tableSeat.createMany({ data: seatData });
 
   revalidatePath(`/party/${event.partyId}/event/${event.id}`);
   return { success: true, tableId: table.id };
@@ -85,38 +81,30 @@ export async function updateTable(data: {
   const oldMax = table.maxPlayers;
   const newMax = parsed.data.maxPlayers;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.gameTable.update({
-      where: { id: parsed.data.tableId },
-      data: {
-        boardGameBggId: parsed.data.boardGameBggId,
-        boardGameName: parsed.data.boardGameName,
-        boardGameImage: parsed.data.boardGameImage,
-        maxPlayers: parsed.data.maxPlayers,
-        comment: parsed.data.comment,
-      },
-    });
-
-    if (newMax > oldMax) {
-      // Add new seats
-      const newSeats = Array.from({ length: newMax - oldMax }, (_, i) => ({
-        tableId: parsed.data.tableId,
-        seatNumber: oldMax + i + 1,
-        userId: null as string | null,
-      }));
-      await tx.tableSeat.createMany({ data: newSeats });
-    } else if (newMax < oldMax) {
-      // Remove highest-numbered empty seats first, then occupied if needed
-      const seatsToRemove = table.seats
-        .slice(newMax)
-        .map((s) => s.id);
-      if (seatsToRemove.length > 0) {
-        await tx.tableSeat.deleteMany({
-          where: { id: { in: seatsToRemove } },
-        });
-      }
-    }
+  await prisma.gameTable.update({
+    where: { id: parsed.data.tableId },
+    data: {
+      boardGameBggId: parsed.data.boardGameBggId,
+      boardGameName: parsed.data.boardGameName,
+      boardGameImage: parsed.data.boardGameImage,
+      maxPlayers: parsed.data.maxPlayers,
+      comment: parsed.data.comment,
+    },
   });
+
+  if (newMax > oldMax) {
+    const newSeats = Array.from({ length: newMax - oldMax }, (_, i) => ({
+      tableId: parsed.data.tableId,
+      seatNumber: oldMax + i + 1,
+      userId: null as string | null,
+    }));
+    await prisma.tableSeat.createMany({ data: newSeats });
+  } else if (newMax < oldMax) {
+    const seatsToRemove = table.seats.slice(newMax).map((s) => s.id);
+    if (seatsToRemove.length > 0) {
+      await prisma.tableSeat.deleteMany({ where: { id: { in: seatsToRemove } } });
+    }
+  }
 
   revalidatePath(`/party/${table.event.partyId}/event/${table.eventId}`);
   return { success: true };
