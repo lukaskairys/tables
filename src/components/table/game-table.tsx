@@ -228,6 +228,15 @@ export function GameTable({ table, currentUser, isAdmin, partyMembers }: GameTab
           by {table.createdBy.name || "Unknown"}
         </span>
         <div className="flex gap-2">
+          <a
+            href={`https://boardgamegeek.com/boardgame/${table.boardGameBggId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on BoardGameGeek"
+            className="hover:opacity-70 transition-opacity flex items-center"
+          >
+            <img src="/bgg.png" alt="BoardGameGeek" className="h-[30px]" />
+          </a>
           {isSeated && (
             <button
               onClick={handleLeave}
