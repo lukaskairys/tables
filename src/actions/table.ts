@@ -46,7 +46,7 @@ export async function createTable(data: {
     userId: i === 0 ? session.user.id : null, // Creator sits at seat 1
   }));
 
-  await prisma.tableSeat.createMany({ data: seatData });
+  await Promise.all(seatData.map((seat) => prisma.tableSeat.create({ data: seat })));
 
   revalidatePath(`/party/${event.partyId}/event/${event.id}`);
   return { success: true, tableId: table.id };
@@ -98,7 +98,7 @@ export async function updateTable(data: {
       seatNumber: oldMax + i + 1,
       userId: null as string | null,
     }));
-    await prisma.tableSeat.createMany({ data: newSeats });
+    await Promise.all(newSeats.map((seat) => prisma.tableSeat.create({ data: seat })));
   } else if (newMax < oldMax) {
     const seatsToRemove = table.seats.slice(newMax).map((s) => s.id);
     if (seatsToRemove.length > 0) {
