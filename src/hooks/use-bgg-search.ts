@@ -22,13 +22,34 @@ export function useBggSearch() {
 
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/bgg/search?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setResults(data);
+        // Try BGG directly from browser (bypasses Cloudflare), fall back to server proxy
+        let results: BggSearchResult[] = [];
+        try {
+          const bggRes = await fetch(
+            `https://boardgamegeek.com/search/boardgame?nosession=1&q=${encodeURIComponent(query)}&showcount=20`,
+            { signal: controller.signal }
+          );
+          if (bggRes.ok) {
+            const data = await bggRes.json();
+            results = (data.items || []).map(
+              (item: { objectid: string; name: string; yearpublished?: number }) => ({
+                id: Number(item.objectid),
+                name: item.name,
+                yearPublished: item.yearpublished || undefined,
+              })
+            );
+          }
+        } catch (bggErr) {
+          if (bggErr instanceof DOMException && bggErr.name === "AbortError") throw bggErr;
+          // CORS or network error — fall back to server proxy
+          const res = await fetch(`/api/bgg/search?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal,
+          });
+          if (res.ok) {
+            results = await res.json();
+          }
         }
+        setResults(results);
       } catch (e) {
         if (e instanceof Error && e.name !== "AbortError") {
           setResults([]);
