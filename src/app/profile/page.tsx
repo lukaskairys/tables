@@ -40,7 +40,7 @@ export default async function ProfilePage() {
           <p className="text-sm text-gray-500">Not in any parties yet.</p>
         ) : (
           <ul className="space-y-2">
-            {memberships.map((m) => (
+            {memberships.map((m: (typeof memberships)[number]) => (
               <li key={m.id}>
                 <Link
                   href={`/party/${m.party.id}`}

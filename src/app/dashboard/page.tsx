@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {memberships.map((m) => (
+          {memberships.map((m: (typeof memberships)[number]) => (
             <PartyCard key={m.id} party={m.party} role={m.role} />
           ))}
         </div>

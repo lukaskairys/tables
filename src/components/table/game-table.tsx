@@ -48,7 +48,6 @@ export function GameTable({ table, currentUser, isAdmin, partyMembers }: GameTab
     confirmLabel: string;
     onConfirm: () => void;
   } | null>(null);
-  const [joinError, setJoinError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,13 +86,9 @@ export function GameTable({ table, currentUser, isAdmin, partyMembers }: GameTab
   const availableMembers = partyMembers.filter((m) => !seatedUserIds.has(m.id));
 
   function handleJoin(seatId: string) {
-    setJoinError(null);
     startTransition(async () => {
       addOptimistic({ type: "join", userId: currentUser.id, seatId });
-      const result = await joinTable(table.id, seatId);
-      if (!result.success) {
-        setJoinError(result.error ?? "Failed to join");
-      }
+      await joinTable(table.id, seatId);
     });
   }
 
@@ -224,9 +219,7 @@ export function GameTable({ table, currentUser, isAdmin, partyMembers }: GameTab
         {table.comment && (
           <p className="text-xs text-gray-400 mt-1 italic">{table.comment}</p>
         )}
-        {joinError && (
-          <p className="text-xs text-red-500 mt-1">{joinError}</p>
-        )}
+
       </div>
 
       {/* Actions */}

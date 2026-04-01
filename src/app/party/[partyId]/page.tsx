@@ -32,7 +32,7 @@ export default async function PartyPage({
 
   if (!party) notFound();
 
-  const membership = party.members.find((m) => m.user.id === session.user!.id);
+  const membership = party.members.find((m: (typeof party.members)[number]) => m.user.id === session.user!.id);
   if (!membership) notFound();
 
   const isAdmin = membership.role === "ADMIN";
@@ -79,7 +79,7 @@ export default async function PartyPage({
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {party.events.map((event) => (
+            {party.events.map((event: (typeof party.events)[number]) => (
               <EventCard key={event.id} event={event} partyId={partyId} />
             ))}
           </div>

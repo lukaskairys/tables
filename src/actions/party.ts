@@ -18,21 +18,26 @@ export async function createParty(formData: FormData) {
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const party = await prisma.party.create({
-    data: {
-      name: parsed.data.name,
-      description: parsed.data.description,
-      inviteCode: nanoid(8),
-      createdById: session.user.id,
-    },
-  });
+  const party = await prisma.$transaction(async (_tx) => {
+    const tx = _tx as typeof prisma;
+    const party = await tx.party.create({
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+        inviteCode: nanoid(8),
+        createdById: session.user.id,
+      },
+    });
 
-  await prisma.partyMember.create({
-    data: {
-      userId: session.user.id,
-      partyId: party.id,
-      role: "ADMIN",
-    },
+    await tx.partyMember.create({
+      data: {
+        userId: session.user.id,
+        partyId: party.id,
+        role: "ADMIN",
+      },
+    });
+
+    return party;
   });
 
   redirect(`/party/${party.id}`);

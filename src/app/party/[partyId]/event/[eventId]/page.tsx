@@ -15,7 +15,7 @@ export default async function EventPage({
   const session = await auth();
   if (!session?.user?.id) notFound();
 
-  let event;
+  let event: Awaited<ReturnType<typeof getEventById>>;
   try {
     event = await getEventById(eventId);
   } catch {
@@ -29,9 +29,9 @@ export default async function EventPage({
       include: { user: { select: { id: true, name: true, image: true } } },
     })
   );
-  const membership = members.find((m) => m.user.id === session.user!.id);
+  const membership = members.find((m: (typeof members)[number]) => m.user.id === session.user!.id);
   const isAdmin = membership?.role === "ADMIN";
-  const partyMembers = members.map((m) => m.user);
+  const partyMembers = members.map((m: (typeof members)[number]) => m.user);
 
   const date = new Date(event.date);
 
@@ -74,7 +74,7 @@ export default async function EventPage({
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {event.tables.map((table) => (
+          {event.tables.map((table: (typeof event.tables)[number]) => (
             <GameTable
               key={table.id}
               table={table}
